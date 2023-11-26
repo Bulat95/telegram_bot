@@ -1,27 +1,31 @@
 import psycopg2
 from psycopg2 import sql
 
-# Подключение к базе данных
-conn = psycopg2.connect(
-    host="localhost",
-    port="5432",
-    database="postgres",
-    user="postgres",
-    password="postgres"
-)
-# Создание курсора для выполнения SQL-запросов
-cursor = conn.cursor()
+
 
 
 def register_user(login, first_name, last_name, account, is_active):
+    # Подключение к базе данных
+    conn = psycopg2.connect(
+        host="localhost",
+        port="5432",
+        database="postgres",
+        user="postgres",
+        password="postgres"
+    )
+    # Создание курсора для выполнения SQL-запросов
+    cursor = conn.cursor()
     # SQL-запрос для вставки данных пользователя
     query = sql.SQL("""
-        INSERT INTO my_table (login, first_name, last_name, account, is_active)
-        VALUES (login, first_name, last_name, account, is_active)
+        INSERT INTO "user" (login, first_name, last_name, account, is_active)
+        VALUES (%s, %s, %s, %s, %s)
     """)
+
+    # Значения для подстановки в запрос
+    values = (login, first_name, last_name, account, is_active)
     try:
         # Выполнение запроса с передачей значений
-        cursor.execute(query)
+        cursor.execute(query, values)
         # Фиксация изменений
         conn.commit()
         print("Пользователь " + login + " успешно зарегистрирован!")

@@ -1,67 +1,52 @@
 import telebot
+from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
+
 import UserService
 
 API_TOKEN = '6496268341:AAHiLUnZq4wJVh1y4n2ZBbLqkjFIPqnwuM8'
 
 bot = telebot.TeleBot(API_TOKEN)
 
+userService = UserService
 
-@bot.message_handler(commands=['/help', '/start'])
-def welcome(message):
-    bot.send_message(message.chat.id, "Сейчас всего лишь две команды доступны")
-
-
-@bot.message_handler(commands=['info'])
-def send_welcome(message):
-    name = bot.get_me()
-    print(name)
-    bot.reply_to(message, "Welcome, " + name)
-
-@bot.message_handler(content_types=['text'])
-def lalalla(message):
-    bot.send_message(message.chat.id, message.text)
-
-@bot.message_handler(commands=["register"])
-def register(message):
-    # Запрашиваем данные пользователя
-    bot.reply_to(message, "Введите ваш логин:")
-    bot.register_next_step_handler(message, process_login)
+@bot.message_handler(commands=['start'])
+def send_initial_message(message):
+    user = message.from_user
+    userService.register_user(user.username, user.first_name, user.last_name, 0, "true")
+    bot.send_message(message.chat.id,"Добро пожаловать, вы зарегистрировались и можете отправлять сообщения!")
 
 
-def process_login(message):
-    login = message.text
-    bot.reply_to(message, "Введите ваше имя:")
-    bot.register_next_step_handler(message, process_name, login)
+def send_menu(chat_id):
+    message = "Выберите одну из команд:"
+
+    # Создаем кнопки меню
+    menu_buttons = [
+        [InlineKeyboardButton('Команда 1', callback_data='command1')],
+        [InlineKeyboardButton('Команда 2', callback_data='command2')],
+        [InlineKeyboardButton('Команда 3', callback_data='command3')]
+    ]
+
+    # Создаем разметку меню
+    menu_markup = InlineKeyboardMarkup(menu_buttons)
+
+    # Отправляем сообщение с меню
+    bot.send_message(chat_id=chat_id, text=message, reply_markup=menu_markup)
 
 
-def process_name(message, login):
-    name = message.text
-    bot.reply_to(message, "Введите вашу фамилию:")
-    bot.register_next_step_handler(message, process_surname, login, name)
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback_query(call):
+    # Обработка выбора пользователем команды из меню
+    if call.data == 'command1':
+        bot.send_message(chat_id=call.message.chat.id, text="Вы выбрали Команду 1")
+    elif call.data == 'command2':
+        bot.send_message(chat_id=call.message.chat.id, text="Вы выбрали Команду 2")
+    elif call.data == 'command3':
+        bot.send_message(chat_id=call.message.chat.id, text="Вы выбрали Команду 3")
 
 
-def process_surname(message, login, name):
-    surname = message.text
-    bot.reply_to(message, "Введите ваш аккаунт:")
-    bot.register_next_step_handler(message, process_account, login, name, surname)
-
-
-def process_account(message, login, name, surname):
-    try:
-        account = float(message.text)
-        bot.reply_to(message, "Введите ваш статус (Активный/Неактивный):")
-        bot.register_next_step_handler(message, save_user, login, name, surname, account)
-    except ValueError:
-        bot.reply_to(message, "Ошибка! Введите числовое значение для аккаунта.")
-        bot.register_next_step_handler(message, process_account, login, name, surname)
-
-
-def save_user(message, login, name, surname, account):
-    status = False
-    if message.text.lower() == "активный":
-        status = True
-    # Сохраняем данные пользователя в базе данных
-    bot.send_message(message.chat.id, "Вы успешно зарегистрированы!")
+@bot.message_handler(commands=['starts'])
+def start_command_handler(message):
+    send_menu(message.chat.id)
 
 bot.polling(none_stop=True)
 
